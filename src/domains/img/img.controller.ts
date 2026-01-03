@@ -1,4 +1,12 @@
-import { Body, Controller, Post, Res } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Post,
+  Res,
+  UploadedFile,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { NewImageDto } from './dtos';
 import { OpenAIService } from './services';
 import type { Response } from 'express';
@@ -8,8 +16,16 @@ export class ImgController {
   constructor(private readonly openAIService: OpenAIService) {}
 
   @Post('openai')
-  async getOpenAIImage(@Body() body: NewImageDto, @Res() res: Response) {
-    const buffer = await this.openAIService.genImage(body.prompt);
+  @UseInterceptors(FileInterceptor('image'))
+  async getOpenAIImage(
+    @Body() body: NewImageDto,
+    @Res() res: Response,
+    @UploadedFile() file?: Express.Multer.File,
+  ): Promise<void> {
+    let buffer: Buffer<ArrayBufferLike> | undefined;
+    if (file) buffer = await this.openAIService.editImage(file, body.prompt);
+    else buffer = await this.openAIService.genImage(body.prompt);
+
     res.setHeader('Content-Type', 'image/png');
     res.send(buffer);
   }
