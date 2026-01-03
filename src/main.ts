@@ -17,6 +17,7 @@ async function bootstrap() {
   );
   app.enableCors();
   app.use(cookieParser());
+  app.setGlobalPrefix('api');
   await app.listen(envService.port);
   logger.log(`Application is running on port ${envService.port}`);
 }
