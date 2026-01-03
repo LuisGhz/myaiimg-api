@@ -1,8 +1,10 @@
 import { z } from 'zod';
 
 export const envSchema = z.object({
-  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-  PORT: z.string().optional(),
+  NODE_ENV: z
+    .enum(['development', 'production', 'test'])
+    .default('development'),
+  PORT: z.string().transform(Number),
   OPENAI_API_KEY: z.string(),
   GEMINI_API_KEY: z.string(),
   JWT_SECRET: z.string(),

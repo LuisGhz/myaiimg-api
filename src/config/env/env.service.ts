@@ -10,6 +10,10 @@ export class EnvService {
     return this.configService.get<string>('NODE_ENV', { infer: true })!;
   }
 
+  get port(): string {
+    return this.configService.get<string>('PORT', { infer: true })!;
+  }
+
   get openAIApiKey(): string {
     return this.configService.get<string>('OPENAI_API_KEY', { infer: true })!;
   }
