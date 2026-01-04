@@ -8,12 +8,15 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { NewImageDto } from './dtos';
-import { OpenAIService } from './services';
+import { GeminiService, OpenAIService } from './services';
 import type { Response } from 'express';
 
 @Controller('img')
 export class ImgController {
-  constructor(private readonly openAIService: OpenAIService) {}
+  constructor(
+    private readonly openAIService: OpenAIService,
+    private readonly geminiService: GeminiService,
+  ) {}
 
   @Post('openai')
   @UseInterceptors(FileInterceptor('image'))
@@ -31,7 +34,17 @@ export class ImgController {
   }
 
   @Post('gemini')
-  getGeminiImage() {
-    return 'This will handle Gemini image requests';
+  @UseInterceptors(FileInterceptor('image'))
+  async getGeminiImage(
+    @Body() body: NewImageDto,
+    @Res() res: Response,
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
+    let buffer: Buffer<ArrayBufferLike> | undefined;
+    if (file) buffer = await this.geminiService.editImage(file, body.prompt);
+    else buffer = await this.geminiService.genImage(body.prompt);
+
+    res.setHeader('Content-Type', 'image/png');
+    res.send(buffer);
   }
 }
