@@ -16,6 +16,8 @@ export const envSchema = z.object({
   DB_USERNAME: z.string(),
   DB_PASSWORD: z.string(),
   DB_NAME: z.string(),
+  AUTH0_DOMAIN: z.string(),
+  AUTH0_AUDIENCE: z.string(),
 });
 
 export type EnvSchema = z.infer<typeof envSchema>;

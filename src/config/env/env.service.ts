@@ -60,4 +60,12 @@ export class EnvService {
   get dbName(): string {
     return this.configService.get<string>('DB_NAME', { infer: true })!;
   }
+
+  get auth0Domain(): string {
+    return this.configService.get<string>('AUTH0_DOMAIN', { infer: true })!;
+  }
+
+  get auth0Audience(): string {
+    return this.configService.get<string>('AUTH0_AUDIENCE', { infer: true })!;
+  }
 }
