@@ -1,11 +1,13 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { EnvService } from '@config/env';
 import openAIClient, { toFile } from 'openai';
 import { base64toImage } from '@img/util/base64toImage.util';
+import { OpenAINewImageReqDto } from '@img/dtos';
 
 @Injectable()
 export class OpenAIService {
   private openAI: openAIClient;
+  private readonly logger = new Logger(OpenAIService.name);
 
   constructor(private readonly envService: EnvService) {
     this.openAI = new openAIClient({
@@ -13,13 +15,21 @@ export class OpenAIService {
     });
   }
 
-  async genImage(prompt: string) {
-    const res = await this.openAI.images.generate({
-      model: 'gpt-image-1-mini',
-      prompt,
+  async genImage(dto: OpenAINewImageReqDto) {
+    this.logger.debug({
+      model: dto.model,
+      prompt: dto.prompt,
       n: 1,
-      size: '1024x1024',
-      quality: 'low',
+      size: dto.options.size,
+      quality: dto.options.quality,
+    });
+
+    const res = await this.openAI.images.generate({
+      model: dto.model,
+      prompt: dto.prompt,
+      n: 1,
+      size: dto.options.size,
+      quality: dto.options.quality,
     });
 
     if (!res.data?.[0]?.b64_json)
@@ -28,20 +38,29 @@ export class OpenAIService {
     return base64toImage(res.data[0].b64_json);
   }
 
-  async editImage(prompt: string, files: Express.Multer.File[]) {
+  async editImage(dto: OpenAINewImageReqDto, files: Express.Multer.File[]) {
     const cImages = await Promise.all(
       files.map(async (file) =>
         toFile(file.buffer, file.originalname, { type: file.mimetype }),
       ),
     );
 
-    const res = await this.openAI.images.edit({
-      model: 'gpt-image-1-mini',
+    this.logger.debug({
+      model: dto.model,
       image: cImages,
-      prompt,
+      prompt: dto.prompt,
       n: 1,
-      size: '1024x1024',
-      quality: 'low',
+      size: dto.options.size,
+      quality: dto.options.quality,
+    });
+
+    const res = await this.openAI.images.edit({
+      model: dto.model,
+      image: cImages,
+      prompt: dto.prompt,
+      n: 1,
+      size: dto.options.size,
+      quality: dto.options.quality,
     });
 
     if (!res.data?.[0]?.b64_json)

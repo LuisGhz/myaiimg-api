@@ -1,16 +1,19 @@
 import { Type, Transform, plainToInstance } from 'class-transformer';
-import { IsIn, IsNotEmpty, IsOptional, IsString, ValidateNested } from 'class-validator';
+import {
+  IsIn,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  ValidateNested,
+} from 'class-validator';
 
 export class OpenAIModelOptionsReqDto {
   @IsString()
   @IsIn(['1024x1024', '1536x1024', '1024x1536'])
-  size: string;
+  size: '1024x1024' | '1536x1024' | '1024x1536';
   @IsString()
   @IsIn(['low', 'medium', 'high', 'auto'])
-  quality: string;
-  @IsString()
-  @IsIn(['natural', 'vivid'])
-  style: string;
+  quality: 'low' | 'medium' | 'high' | 'auto';
 }
 
 export class OpenAINewImageReqDto {

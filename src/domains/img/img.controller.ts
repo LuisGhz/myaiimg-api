@@ -49,8 +49,8 @@ export class ImgController {
       const files = [imageFile, lastGeneratedImageFile].filter(
         (file): file is Express.Multer.File => file !== undefined,
       );
-      buffer = await this.openAIService.editImage(body.prompt, files);
-    } else buffer = await this.openAIService.genImage(body.prompt);
+      buffer = await this.openAIService.editImage(body, files);
+    } else buffer = await this.openAIService.genImage(body);
 
     // key is path/filename in S3 bucket
     const key = await this.s3Service.uploadImage(buffer, user.sub);
@@ -87,8 +87,8 @@ export class ImgController {
       const files = [imageFile, lastGeneratedImageFile].filter(
         (file): file is Express.Multer.File => file !== undefined,
       );
-      buffer = await this.geminiService.editImage(body.prompt, files);
-    } else buffer = await this.geminiService.genImage(body.prompt);
+      buffer = await this.geminiService.editImage(body, files);
+    } else buffer = await this.geminiService.genImage(body);
 
     const key = await this.s3Service.uploadImage(buffer, user.sub);
 

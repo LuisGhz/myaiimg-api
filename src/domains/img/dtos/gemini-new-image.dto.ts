@@ -1,9 +1,9 @@
 import { IsIn, IsOptional, IsString, ValidateNested } from 'class-validator';
-import { Type, Transform, plainToInstance } from 'class-transformer';
+import { Transform, plainToInstance } from 'class-transformer';
 
 export class GeminiModelOptionsReqDto {
   @IsString()
-  @IsIn(['1k', '2k', '4k'])
+  @IsIn(['1K', '2K', '4K'])
   size: string;
   @IsString()
   @IsIn([
@@ -18,7 +18,7 @@ export class GeminiModelOptionsReqDto {
     '5:4',
     '4:5',
   ])
-  aspectRation: string;
+  aspectRatio: string;
 }
 
 export class GeminiNewImageReqDto {
