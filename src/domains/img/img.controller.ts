@@ -101,9 +101,8 @@ export class ImgController {
     };
   }
 
-  @Get()
+  @Get('generated')
   async getUserImages(@User() user: JwtPayload) {
-    const images = await this.imageService.findAllByUserId(user.sub);
-    return { images };
+    return await this.imageService.findAllByUserId(user.sub);
   }
 }

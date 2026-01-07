@@ -2,12 +2,14 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Image } from '../entities/image.entity';
+import { EnvService } from '@config/env';
 
 @Injectable()
 export class ImageService {
   constructor(
     @InjectRepository(Image)
     private readonly imageRepository: Repository<Image>,
+    private readonly envService: EnvService,
   ) {}
 
   async create(params: { key: string; userId: string }): Promise<Image> {
@@ -18,11 +20,15 @@ export class ImageService {
     return this.imageRepository.save(image);
   }
 
-  async findAllByUserId(userId: string): Promise<Image[]> {
-    return this.imageRepository.find({
+  async findAllByUserId(userId: string) {
+    const imgs = await this.imageRepository.find({
       where: { userId, isDeleted: false },
       order: { createdAt: 'DESC' },
     });
+
+    return imgs.map((img) => ({
+      src: `${this.envService.cdn}${img.key}`,
+    }));
   }
 
   async softDelete(params: { id: string; userId: string; deletedBy: string }) {
