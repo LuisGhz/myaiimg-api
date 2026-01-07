@@ -7,7 +7,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { NewImageDto } from './dtos';
+import { GeminiNewImageReqDto, OpenAINewImageReqDto } from './dtos';
 import { GeminiService, OpenAIService, S3Service } from './services';
 import type { Response } from 'express';
 import { User } from '@common/decorators';
@@ -24,7 +24,7 @@ export class ImgController {
   @Post('openai')
   @UseInterceptors(FileInterceptor('image'))
   async getOpenAIImage(
-    @Body() body: NewImageDto,
+    @Body() body: OpenAINewImageReqDto,
     @Res() res: Response,
     @User() user: JwtPayload,
     @UploadedFile() file?: Express.Multer.File,
@@ -42,7 +42,7 @@ export class ImgController {
   @Post('gemini')
   @UseInterceptors(FileInterceptor('image'))
   async getGeminiImage(
-    @Body() body: NewImageDto,
+    @Body() body: GeminiNewImageReqDto,
     @Res() res: Response,
     @User() user: JwtPayload,
     @UploadedFile() file?: Express.Multer.File,
