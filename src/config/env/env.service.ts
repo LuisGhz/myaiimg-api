@@ -88,4 +88,8 @@ export class EnvService {
       infer: true,
     })!;
   }
+
+  get cdn(): string {
+    return this.configService.get<string>('CDN_DOMAIN', { infer: true })!;
+  }
 }
