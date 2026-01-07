@@ -16,7 +16,7 @@ export const typeOrmDataSourceConfig: DataSourceOptions = {
   synchronize: false,
   logging: true,
   entities: [__dirname + '/../../**/*.entity{.ts,.js}'],
-  migrations: [__dirname + '/../../migrations/*{.ts,.js}'],
+  migrations: [__dirname + '/../../**/migrations/*{.ts,.js}'],
   migrationsRun: false,
 };
 
