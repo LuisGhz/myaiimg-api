@@ -25,25 +25,26 @@ export class ImgController {
   @UseInterceptors(FileInterceptor('image'))
   async getOpenAIImage(
     @Body() body: OpenAINewImageReqDto,
-    @Res() res: Response,
     @User() user: JwtPayload,
     @UploadedFile() file?: Express.Multer.File,
-  ): Promise<void> {
+  ) {
     let buffer: Buffer<ArrayBufferLike> | undefined;
     if (file) buffer = await this.openAIService.editImage(file, body.prompt);
     else buffer = await this.openAIService.genImage(body.prompt);
 
-    await this.s3Service.uploadImage(buffer, user.sub);
+    // key is path/filename in S3 bucket
+    const key = await this.s3Service.uploadImage(buffer, user.sub);
 
-    res.setHeader('Content-Type', 'image/png');
-    res.send(buffer);
+    return {
+      image: buffer.toString('base64'),
+      key,
+    };
   }
 
   @Post('gemini')
   @UseInterceptors(FileInterceptor('image'))
   async getGeminiImage(
     @Body() body: GeminiNewImageReqDto,
-    @Res() res: Response,
     @User() user: JwtPayload,
     @UploadedFile() file?: Express.Multer.File,
   ) {
@@ -51,9 +52,11 @@ export class ImgController {
     if (file) buffer = await this.geminiService.editImage(file, body.prompt);
     else buffer = await this.geminiService.genImage(body.prompt);
 
-    await this.s3Service.uploadImage(buffer, user.sub);
+    const key = await this.s3Service.uploadImage(buffer, user.sub);
 
-    res.setHeader('Content-Type', 'image/png');
-    res.send(buffer);
+    return {
+      image: buffer.toString('base64'),
+      key,
+    };
   }
 }
