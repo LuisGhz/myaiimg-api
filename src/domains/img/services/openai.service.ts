@@ -28,15 +28,16 @@ export class OpenAIService {
     return base64toImage(res.data[0].b64_json);
   }
 
-  async editImage(image: Express.Multer.File, prompt: string) {
-    const filename = image.originalname ?? 'image.png';
-    const mimeType = image.mimetype ?? 'image/png';
-
-    const cImage = await toFile(image.buffer, filename, { type: mimeType });
+  async editImage(prompt: string, files: Express.Multer.File[]) {
+    const cImages = await Promise.all(
+      files.map(async (file) =>
+        toFile(file.buffer, file.originalname, { type: file.mimetype }),
+      ),
+    );
 
     const res = await this.openAI.images.edit({
       model: 'gpt-image-1-mini',
-      image: [cImage],
+      image: cImages,
       prompt,
       n: 1,
       size: '1024x1024',

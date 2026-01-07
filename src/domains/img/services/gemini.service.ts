@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenAI, Part } from '@google/genai';
 import { EnvService } from '@config/env';
 import { base64toImage } from '@img/util/base64toImage.util';
 
@@ -33,7 +33,13 @@ export class GeminiService {
     return base64toImage(base64);
   }
 
-  async editImage(file: Express.Multer.File, prompt: string) {
+  async editImage(prompt: string, files: Express.Multer.File[]) {
+    const filesPart: Part[] = files.map((file) => ({
+      inlineData: {
+        mimeType: file.mimetype,
+        data: file.buffer.toString('base64'),
+      },
+    }));
     const res = await this.geminiClient.models.generateContent({
       model: 'gemini-2.5-flash-image',
       contents: [
@@ -43,12 +49,7 @@ export class GeminiService {
             {
               text: prompt,
             },
-            {
-              inlineData: {
-                mimeType: file.mimetype,
-                data: file.buffer.toString('base64'),
-              },
-            },
+            ...filesPart,
           ],
         },
       ],

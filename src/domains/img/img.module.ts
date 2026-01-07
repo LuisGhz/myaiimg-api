@@ -1,10 +1,12 @@
 import { Module } from '@nestjs/common';
-import { GeminiService, OpenAIService, S3Service } from './services';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { GeminiService, ImageService, OpenAIService, S3Service } from './services';
 import { ImgController } from './img.controller';
+import { Image } from './entities/image.entity';
 
 @Module({
-  imports: [],
+  imports: [TypeOrmModule.forFeature([Image])],
   controllers: [ImgController],
-  providers: [OpenAIService, GeminiService, S3Service],
+  providers: [OpenAIService, GeminiService, S3Service, ImageService],
 })
 export class ImgModule {}

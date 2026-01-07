@@ -1,8 +1,11 @@
-import { IsIn, IsString } from 'class-validator';
+import { IsIn, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { Type, Transform, plainToInstance } from 'class-transformer';
 
 export class GeminiModelOptionsReqDto {
+  @IsString()
   @IsIn(['1k', '2k', '4k'])
   size: string;
+  @IsString()
   @IsIn([
     '21:9',
     '16:9',
@@ -23,5 +26,13 @@ export class GeminiNewImageReqDto {
   prompt: string;
   @IsIn(['gemini-2.5-flash-image', 'gemini-3-pro-image-preview'])
   model: string;
+  @Transform(({ value }) => {
+    const parsed = typeof value === 'string' ? JSON.parse(value) : value;
+    return plainToInstance(GeminiModelOptionsReqDto, parsed);
+  })
+  @ValidateNested()
   options: GeminiModelOptionsReqDto;
+  @IsOptional()
+  @IsString()
+  lastGeneratedImageKey?: string;
 }

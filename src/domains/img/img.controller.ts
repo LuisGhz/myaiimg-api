@@ -1,15 +1,19 @@
 import {
   Body,
   Controller,
+  Get,
   Post,
-  Res,
-  UploadedFile,
+  UploadedFiles,
   UseInterceptors,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { GeminiNewImageReqDto, OpenAINewImageReqDto } from './dtos';
-import { GeminiService, OpenAIService, S3Service } from './services';
-import type { Response } from 'express';
+import {
+  GeminiService,
+  ImageService,
+  OpenAIService,
+  S3Service,
+} from './services';
 import { User } from '@common/decorators';
 import type { JwtPayload } from '@core/strategies/interfaces';
 
@@ -19,21 +23,40 @@ export class ImgController {
     private readonly openAIService: OpenAIService,
     private readonly geminiService: GeminiService,
     private readonly s3Service: S3Service,
+    private readonly imageService: ImageService,
   ) {}
 
   @Post('openai')
-  @UseInterceptors(FileInterceptor('image'))
+  @UseInterceptors(
+    FileFieldsInterceptor([
+      { name: 'image', maxCount: 1 },
+      { name: 'lastGeneratedImage', maxCount: 1 },
+    ]),
+  )
   async getOpenAIImage(
     @Body() body: OpenAINewImageReqDto,
     @User() user: JwtPayload,
-    @UploadedFile() file?: Express.Multer.File,
+    @UploadedFiles()
+    files?: {
+      image?: Express.Multer.File[];
+      lastGeneratedImage?: Express.Multer.File[];
+    },
   ) {
     let buffer: Buffer<ArrayBufferLike> | undefined;
-    if (file) buffer = await this.openAIService.editImage(file, body.prompt);
-    else buffer = await this.openAIService.genImage(body.prompt);
+    const imageFile = files?.image?.[0];
+    const lastGeneratedImageFile = files?.lastGeneratedImage?.[0];
+    if (imageFile || lastGeneratedImageFile) {
+      const files = [imageFile, lastGeneratedImageFile].filter(
+        (file): file is Express.Multer.File => file !== undefined,
+      );
+      buffer = await this.openAIService.editImage(body.prompt, files);
+    } else buffer = await this.openAIService.genImage(body.prompt);
 
     // key is path/filename in S3 bucket
     const key = await this.s3Service.uploadImage(buffer, user.sub);
+
+    // Save image record to database
+    await this.imageService.create({ key, userId: user.sub });
 
     return {
       image: buffer.toString('base64'),
@@ -42,21 +65,45 @@ export class ImgController {
   }
 
   @Post('gemini')
-  @UseInterceptors(FileInterceptor('image'))
+  @UseInterceptors(
+    FileFieldsInterceptor([
+      { name: 'image', maxCount: 1 },
+      { name: 'lastGeneratedImage', maxCount: 1 },
+    ]),
+  )
   async getGeminiImage(
     @Body() body: GeminiNewImageReqDto,
     @User() user: JwtPayload,
-    @UploadedFile() file?: Express.Multer.File,
+    @UploadedFiles()
+    files?: {
+      image?: Express.Multer.File[];
+      lastGeneratedImage?: Express.Multer.File[];
+    },
   ) {
     let buffer: Buffer<ArrayBufferLike> | undefined;
-    if (file) buffer = await this.geminiService.editImage(file, body.prompt);
-    else buffer = await this.geminiService.genImage(body.prompt);
+    const imageFile = files?.image?.[0];
+    const lastGeneratedImageFile = files?.lastGeneratedImage?.[0];
+    if (imageFile || lastGeneratedImageFile) {
+      const files = [imageFile, lastGeneratedImageFile].filter(
+        (file): file is Express.Multer.File => file !== undefined,
+      );
+      buffer = await this.geminiService.editImage(body.prompt, files);
+    } else buffer = await this.geminiService.genImage(body.prompt);
 
     const key = await this.s3Service.uploadImage(buffer, user.sub);
+
+    // Save image record to database
+    await this.imageService.create({ key, userId: user.sub });
 
     return {
       image: buffer.toString('base64'),
       key,
     };
+  }
+
+  @Get()
+  async getUserImages(@User() user: JwtPayload) {
+    const images = await this.imageService.findAllByUserId(user.sub);
+    return { images };
   }
 }
