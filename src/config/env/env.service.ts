@@ -21,25 +21,6 @@ export class EnvService {
   get geminiApiKey(): string {
     return this.configService.get<string>('GEMINI_API_KEY', { infer: true })!;
   }
-  get jwtSecret(): string {
-    return this.configService.get<string>('JWT_SECRET', { infer: true })!;
-  }
-
-  get jwtExpiresIn(): string {
-    return this.configService.get<string>('JWT_EXPIRES_IN', { infer: true })!;
-  }
-
-  get refreshTokenLength(): number {
-    return this.configService.get<number>('REFRESH_TOKEN_LENGTH', {
-      infer: true,
-    })!;
-  }
-
-  get refreshTokenExpiresIn(): string {
-    return this.configService.get<string>('REFRESH_TOKEN_EXPIRES_IN', {
-      infer: true,
-    })!;
-  }
 
   get dbHost(): string {
     return this.configService.get<string>('DB_HOST', { infer: true })!;
