@@ -93,6 +93,12 @@
       "**/*.(t|j)s"
     ],
     "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "moduleNameMapper": {
+      "^@config/(.*)$": "<rootDir>/config/$1",
+      "^@core/(.*)$": "<rootDir>/core/$1",
+      "^@common/(.*)$": "<rootDir>/common/$1",
+      "^@img/(.*)$": "<rootDir>/domains/img/$1"
+    }
   }
 }
