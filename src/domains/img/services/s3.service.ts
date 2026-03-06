@@ -1,5 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import {
+  GetObjectCommand,
+  PutObjectCommand,
+  S3Client,
+} from '@aws-sdk/client-s3';
+import { Readable } from 'stream';
 import { EnvService } from '@config/env';
 import { randomBytes } from 'crypto';
 
@@ -39,6 +44,28 @@ export class S3Service {
       return key;
     } catch (error) {
       this.#logger.error('Failed to upload image to S3', error);
+      throw error;
+    }
+  }
+
+  async downloadImage(key: string): Promise<Buffer> {
+    try {
+      const command = new GetObjectCommand({
+        Bucket: this.#bucket,
+        Key: key,
+      });
+
+      const response = await this.#s3Client.send(command);
+      const stream = response.Body as Readable;
+
+      return new Promise<Buffer>((resolve, reject) => {
+        const chunks: Buffer[] = [];
+        stream.on('data', (chunk: Buffer) => chunks.push(chunk));
+        stream.on('end', () => resolve(Buffer.concat(chunks)));
+        stream.on('error', reject);
+      });
+    } catch (error) {
+      this.#logger.error(`Failed to download image from S3: ${key}`, error);
       throw error;
     }
   }
