@@ -1,8 +1,10 @@
+import { StreamableFile } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ImgController } from './img.controller';
 import { GeminiService, ImageService, OpenAIService, S3Service } from './services';
 import { GeminiNewImageReqDto, OpenAINewImageReqDto } from './dtos';
 import type { JwtPayload } from '@core/strategies/interfaces';
+import type { Response } from 'express';
 
 const openAIServiceMock = {
   genImage: jest.fn(),
@@ -16,6 +18,7 @@ const geminiServiceMock = {
 
 const s3ServiceMock = {
   uploadImage: jest.fn(),
+  downloadImage: jest.fn(),
 };
 
 const imageServiceMock = {
@@ -532,6 +535,71 @@ describe('ImgController', () => {
       expect(geminiServiceMock.genImage).toHaveBeenCalledWith(body);
       expect(s3ServiceMock.uploadImage).toHaveBeenCalledWith(buffer, user.sub);
       expect(imageServiceMock.create).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('downloadImage', () => {
+    it('should download image and return a StreamableFile with proper response headers', async () => {
+      const src = 'https://cdn.example.com/myaiimg/user-123/image.png';
+      const user = { sub: 'user-123' } as JwtPayload;
+      const buffer = Buffer.from('binary-image-data');
+      const res = { set: jest.fn() } as unknown as Response;
+
+      s3ServiceMock.downloadImage.mockResolvedValue(buffer);
+
+      const result = await controller.downloadImage(src, user, res);
+
+      expect(s3ServiceMock.downloadImage).toHaveBeenCalledWith('myaiimg/user-123/image.png');
+      expect(s3ServiceMock.downloadImage).toHaveBeenCalledTimes(1);
+      expect(res.set).toHaveBeenCalledWith({
+        'Content-Type': 'image/png',
+        'Content-Disposition': 'attachment; filename="image.png"',
+        'Content-Length': buffer.length,
+      });
+      expect(result).toBeInstanceOf(StreamableFile);
+    });
+
+    it('should normalize user.sub with | characters when constructing the S3 key', async () => {
+      const src = 'https://cdn.example.com/myaiimg/auth0-user-abc123/photo.png';
+      const user = { sub: 'auth0|user|abc123' } as JwtPayload;
+      const buffer = Buffer.from('image-data');
+      const res = { set: jest.fn() } as unknown as Response;
+
+      s3ServiceMock.downloadImage.mockResolvedValue(buffer);
+
+      await controller.downloadImage(src, user, res);
+
+      expect(s3ServiceMock.downloadImage).toHaveBeenCalledWith('myaiimg/auth0-user-abc123/photo.png');
+    });
+
+    it('should extract filename correctly from a deeply nested src path', async () => {
+      const src = 'https://s3.amazonaws.com/bucket/myaiimg/user-123/nested/deep/filename.png';
+      const user = { sub: 'user-123' } as JwtPayload;
+      const buffer = Buffer.from('image-data');
+      const res = { set: jest.fn() } as unknown as Response;
+
+      s3ServiceMock.downloadImage.mockResolvedValue(buffer);
+
+      await controller.downloadImage(src, user, res);
+
+      expect(res.set).toHaveBeenCalledWith(
+        expect.objectContaining({
+          'Content-Disposition': 'attachment; filename="filename.png"',
+        }),
+      );
+    });
+
+    it('should throw when S3 download fails', async () => {
+      const src = 'https://cdn.example.com/myaiimg/user-123/image.png';
+      const user = { sub: 'user-123' } as JwtPayload;
+      const res = { set: jest.fn() } as unknown as Response;
+      const error = new Error('S3 object not found');
+
+      s3ServiceMock.downloadImage.mockRejectedValue(error);
+
+      await expect(controller.downloadImage(src, user, res)).rejects.toThrow('S3 object not found');
+      expect(s3ServiceMock.downloadImage).toHaveBeenCalledWith('myaiimg/user-123/image.png');
+      expect(res.set).not.toHaveBeenCalled();
     });
   });
 });

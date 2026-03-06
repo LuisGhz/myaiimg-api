@@ -2,11 +2,25 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { Logger } from '@nestjs/common';
 import { S3Service } from './s3.service';
 import { EnvService } from '@config/env';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import { EventEmitter } from 'events';
 import { randomBytes } from 'crypto';
 
 jest.mock('@aws-sdk/client-s3');
 jest.mock('crypto');
+
+const createMockStream = (chunks: Buffer[], streamError?: Error) => {
+  const emitter = new EventEmitter();
+  setImmediate(() => {
+    if (streamError) {
+      emitter.emit('error', streamError);
+    } else {
+      for (const chunk of chunks) emitter.emit('data', chunk);
+      emitter.emit('end');
+    }
+  });
+  return emitter;
+};
 
 describe('S3Service', () => {
   let service: S3Service;
@@ -184,5 +198,71 @@ describe('S3Service', () => {
     await expect(service.uploadImage(buffer, userSub)).rejects.toThrow(
       'Crypto module error',
     );
+  });
+
+  it('should download an image from S3 and return a Buffer', async () => {
+    const key = 'myaiimg/auth0-user123/abc-2026-03-06.png';
+    const chunks = [Buffer.from('chunk1'), Buffer.from('chunk2')];
+    const mockStream = createMockStream(chunks);
+
+    (s3ClientMock.send as jest.Mock).mockResolvedValue({ Body: mockStream });
+
+    const result = await service.downloadImage(key);
+
+    expect(s3ClientMock.send).toHaveBeenCalledTimes(1);
+    expect(s3ClientMock.send).toHaveBeenCalledWith(expect.any(GetObjectCommand));
+    expect(result).toEqual(Buffer.concat(chunks));
+  });
+
+  it('should call GetObjectCommand with correct bucket and key', async () => {
+    const key = 'myaiimg/user/some-image.png';
+    const mockStream = createMockStream([Buffer.from('data')]);
+
+    (s3ClientMock.send as jest.Mock).mockResolvedValue({ Body: mockStream });
+
+    await service.downloadImage(key);
+
+    expect(jest.mocked(GetObjectCommand)).toHaveBeenCalledWith({
+      Bucket: envServiceMock.awsS3Bucket,
+      Key: key,
+    });
+  });
+
+  it('should concatenate multiple stream chunks into a single Buffer', async () => {
+    const key = 'myaiimg/user/multi-chunk.png';
+    const chunks = [Buffer.from('part1'), Buffer.from('part2'), Buffer.from('part3')];
+    const mockStream = createMockStream(chunks);
+
+    (s3ClientMock.send as jest.Mock).mockResolvedValue({ Body: mockStream });
+
+    const result = await service.downloadImage(key);
+
+    expect(result).toEqual(Buffer.concat(chunks));
+    expect(result.toString()).toBe('part1part2part3');
+  });
+
+  it('should log error and throw when S3 download fails', async () => {
+    const key = 'myaiimg/user/fail.png';
+    const s3Error = new Error('S3 download failed');
+
+    (s3ClientMock.send as jest.Mock).mockRejectedValue(s3Error);
+
+    const loggerErrorSpy = jest.spyOn(Logger.prototype, 'error');
+
+    await expect(service.downloadImage(key)).rejects.toThrow('S3 download failed');
+    expect(loggerErrorSpy).toHaveBeenCalledWith(
+      `Failed to download image from S3: ${key}`,
+      s3Error,
+    );
+  });
+
+  it('should throw when stream emits an error', async () => {
+    const key = 'myaiimg/user/stream-error.png';
+    const streamError = new Error('Stream read failure');
+    const mockStream = createMockStream([], streamError);
+
+    (s3ClientMock.send as jest.Mock).mockResolvedValue({ Body: mockStream });
+
+    await expect(service.downloadImage(key)).rejects.toThrow('Stream read failure');
   });
 });
