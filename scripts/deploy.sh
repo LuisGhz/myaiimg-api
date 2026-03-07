@@ -45,7 +45,7 @@ if [ ${#MISSING_VARS[@]} -gt 0 ]; then
 fi
 echo "✓ All environment variables are set"
 
-IMAGE_NAME="${DOCKERHUB_USER}/myaiimg-api"
+IMAGE_NAME="${DOCKERHUB_USER}/personalwebapss:myaiimg-api"
 export IMAGE_NAME
 CONTAINER_NAME="myaiimg-api"
 LOCAL_PORT=3004
