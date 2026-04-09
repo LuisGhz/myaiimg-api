@@ -72,11 +72,11 @@ else
 fi
 
 # Pull the new image from Docker Hub
-echo "Pulling image ${IMAGE_NAME}:latest..."
-docker pull "${IMAGE_NAME}:latest"
+echo "Pulling image ${IMAGE_NAME}..."
+docker pull "${IMAGE_NAME}"
 PULL_EXIT_CODE=$?
 if [ $PULL_EXIT_CODE -ne 0 ]; then
-    echo "Error: Failed to pull image ${IMAGE_NAME}:latest (exit code $PULL_EXIT_CODE)"
+    echo "Error: Failed to pull image ${IMAGE_NAME} (exit code $PULL_EXIT_CODE)"
     exit 1
 fi
 
@@ -99,7 +99,7 @@ docker run --rm \
     -e AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY}" \
     -e CDN_DOMAIN="${CDN_DOMAIN}" \
     --network dbs \
-    "${IMAGE_NAME}:latest" \
+    "${IMAGE_NAME}" \
     bun run migration:run:prod
 
 MIGRATION_EXIT_CODE=$?
@@ -138,7 +138,7 @@ docker run -d \
     -p ${LOCAL_PORT}:${DOCKER_PORT} \
     --network dbs \
     --name ${CONTAINER_NAME} \
-    ${IMAGE_NAME}:latest
+    ${IMAGE_NAME}
 
 echo "✓ Deployment completed successfully"
 echo "Container ${CONTAINER_NAME} is running on port ${LOCAL_PORT}"
